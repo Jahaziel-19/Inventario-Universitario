@@ -789,20 +789,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer = MovementSerializer(movements, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['get'], url_path='qr-code')
-    def qr_code(self, request, pk=None):
-        product = self.get_object()
-        response = HttpResponse(product.generate_qr_image(), content_type='image/png')
-        response['Content-Disposition'] = f'inline; filename="qr_{product.code}.png"'
-        return response
-
-    @action(detail=True, methods=['get'], url_path='barcode-image')
-    def barcode_image(self, request, pk=None):
-        product = self.get_object()
-        response = HttpResponse(product.generate_barcode_image(), content_type='image/png')
-        response['Content-Disposition'] = f'inline; filename="barcode_{product.code}.png"'
-        return response
-
     @action(detail=False, methods=['post'])
     def import_preview(self, request):
         file_obj = request.FILES.get('file')

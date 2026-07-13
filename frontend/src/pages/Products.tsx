@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Plus, Edit2, RefreshCw, X, Check, FileText, Image as ImageIcon } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import Barcode from 'react-barcode';
 import HierarchicalLocationSelect from '../components/HierarchicalLocationSelect';
 import Modal from '../components/Modal';
 import SearchableSelect, { type SearchableOption } from '../components/SearchableSelect';
@@ -774,7 +776,9 @@ export default function Products({ token, preset, onPresetConsumed }: ProductsPr
                                     <div className="codes-card codes-card--detail">
                                         {selectedProduct.qr_code ? (
                                             <div style={{ textAlign: 'center' }}>
-                                                <img src={buildApiUrl(selectedProduct.qr_code)} alt="QR" style={{ width: '132px', height: '132px', display: 'block', margin: '0 auto' }} />
+                                                <div style={{ width: '132px', height: '132px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '4px' }}>
+                                                    <QRCodeSVG value={selectedProduct.qr_code} size={120} />
+                                                </div>
                                                 <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 650 }}>CÓDIGO QR</span>
                                             </div>
                                         ) : (
@@ -784,7 +788,9 @@ export default function Products({ token, preset, onPresetConsumed }: ProductsPr
                                     <div className="codes-card codes-card--detail">
                                         {selectedProduct.barcode ? (
                                             <div style={{ textAlign: 'center' }}>
-                                                <img src={buildApiUrl(selectedProduct.barcode)} alt="Barcode" style={{ width: '220px', height: '84px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
+                                                <div style={{ width: '220px', height: '84px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', padding: '4px' }}>
+                                                    <Barcode value={selectedProduct.barcode} width={1.5} height={50} format="CODE128" />
+                                                </div>
                                                 <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 650 }}>BARCODE</span>
                                             </div>
                                         ) : (

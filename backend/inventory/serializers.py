@@ -53,10 +53,10 @@ class ProductSerializer(serializers.ModelSerializer):
     barcode = serializers.SerializerMethodField()
 
     def get_qr_code(self, obj):
-        return reverse('product-qr-code', kwargs={'pk': obj.pk})
+        return obj.code
 
     def get_barcode(self, obj):
-        return reverse('product-barcode-image', kwargs={'pk': obj.pk})
+        return obj.get_barcode_payload()
 
     class Meta:
         model = Product

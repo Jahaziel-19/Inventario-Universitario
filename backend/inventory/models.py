@@ -1,11 +1,5 @@
-import os
 import re
 import unicodedata
-import barcode
-import qrcode
-from io import BytesIO
-from barcode.writer import ImageWriter
-from barcode.errors import IllegalCharacterError
 from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -107,9 +101,6 @@ class Product(models.Model):
     observations = models.TextField(blank=True, verbose_name="Observaciones")
     product_image = models.ImageField(upload_to='product_images/', blank=True, null=True, verbose_name="Imagen del Producto")
     
-    qr_code = models.ImageField(upload_to='product_qrs/', blank=True, null=True, verbose_name="Código QR")
-    barcode = models.ImageField(upload_to='product_barcodes/', blank=True, null=True, verbose_name="Código de Barras")
-
     class Meta:
         verbose_name = "Producto"
         verbose_name_plural = "Productos"
@@ -122,31 +113,10 @@ class Product(models.Model):
         self.clean()
         super(Product, self).save(*args, **kwargs)
 
-    def generate_qr_image(self):
-        qr = qrcode.QRCode(version=1, box_size=10, border=3)
-        qr.add_data(self.code)
-        qr.make(fit=True)
-        img = qr.make_image(fill_color="black", back_color="white")
-        buffer = BytesIO()
-        img.save(buffer, format="PNG")
-        return buffer.getvalue()
-
     def get_barcode_payload(self):
         normalized = unicodedata.normalize("NFKD", self.code).encode("ascii", "ignore").decode("ascii")
         sanitized = ''.join(char for char in normalized if 32 <= ord(char) <= 126).strip()
         return sanitized or "PRODUCT-CODE"
-
-    def generate_barcode_image(self):
-        cod128 = barcode.get_barcode_class('code128')
-        writer = ImageWriter()
-        rv = BytesIO()
-        barcode_payload = self.get_barcode_payload()
-        try:
-            cod128(barcode_payload, writer=writer).write(rv)
-        except IllegalCharacterError:
-            fallback_payload = re.sub(r'[^A-Za-z0-9._-]+', '', barcode_payload) or "PRODUCTCODE"
-            cod128(fallback_payload, writer=writer).write(rv)
-        return rv.getvalue()
 
     def __str__(self):
         return f"[{self.code}] {self.description}"

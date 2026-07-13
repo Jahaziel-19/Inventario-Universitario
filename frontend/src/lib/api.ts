@@ -8,8 +8,11 @@ export function buildApiUrl(path: string): string {
   if (/^https?:\/\//i.test(path)) {
     return path;
   }
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    return API_BASE_URL ? `${API_BASE_URL}${normalizedPath}` : normalizedPath;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  if (API_BASE_URL) {
+    return `${API_BASE_URL}${normalizedPath}`;
+  }
+  return normalizedPath;
 }
 
 export function buildMediaUrl(path?: string | null): string {
@@ -19,8 +22,12 @@ export function buildMediaUrl(path?: string | null): string {
   if (/^https?:\/\//i.test(path)) {
     return path;
   }
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    return MEDIA_BASE_URL ? `${MEDIA_BASE_URL}${normalizedPath}` : normalizedPath;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const base = MEDIA_BASE_URL || API_BASE_URL;
+  if (base) {
+    return `${base}${normalizedPath}`;
+  }
+  return normalizedPath;
 }
 
 export function getAuthHeaders(token: string, extraHeaders: Record<string, string> = {}): Record<string, string> {

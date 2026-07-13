@@ -64,7 +64,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ("status", "category", "brand", "unit", "location")
     search_fields = ("code", "description", "observations")
     autocomplete_fields = ("category", "brand", "unit", "location")
-    readonly_fields = ("qr_code", "barcode")
+    readonly_fields = ()
 
 
 @admin.register(Movement)
