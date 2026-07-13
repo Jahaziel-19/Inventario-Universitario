@@ -22,7 +22,7 @@ if errorlevel 1 (
 )
 
 if not exist "staticfiles" (
-    echo Recolectando archivos estaticos (collectstatic)...
+    echo Recolectando archivos estaticos con collectstatic...
     python manage.py collectstatic --noinput --settings=inventario.settings.prod_sqlite
     if errorlevel 1 (
         echo ERROR: Fallo al recolectar archivos estaticos.
