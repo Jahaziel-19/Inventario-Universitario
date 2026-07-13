@@ -86,10 +86,17 @@ if errorlevel 1 (
 pushd "%FRONTEND_DIR%"
 if exist package-lock.json (
     call npm ci
+    if errorlevel 1 (
+        echo npm ci fallo, intentando con npm install...
+        call npm install
+    )
 ) else (
     call npm install
 )
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+    echo ERROR: No se pudieron instalar las dependencias del frontend.
+    exit /b 1
+)
 
 echo [7/8] Construyendo frontend...
 call npm run build
