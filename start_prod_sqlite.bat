@@ -33,6 +33,7 @@ if %errorlevel%==0 (
     where python >nul 2>&1
     if errorlevel 1 (
         echo No se encontro Python.
+        pause
         exit /b 1
     )
     set "PYTHON_CMD=python"
@@ -41,11 +42,19 @@ if %errorlevel%==0 (
 echo [3/8] Creando entorno virtual si hace falta...
 if not exist "%VENV_DIR%\Scripts\python.exe" (
     %PYTHON_CMD% -m venv "%VENV_DIR%"
-    if errorlevel 1 exit /b 1
+    if errorlevel 1 (
+        echo ERROR: Fallo al crear el entorno virtual.
+        pause
+        exit /b 1
+    )
 )
 
 call "%VENV_DIR%\Scripts\activate.bat"
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+    echo ERROR: Fallo al activar el entorno virtual.
+    pause
+    exit /b 1
+)
 
 if exist "%FIXTURE_FILE%" (
     set /p LOAD_FIXTURE=Deseas cargar el fixture opcional local_optional_seed.json^? [s/N]: 
@@ -54,9 +63,17 @@ if exist "%FIXTURE_FILE%" (
 
 echo [4/8] Instalando dependencias de backend...
 python -m pip install --upgrade pip
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+    echo ERROR: Fallo al actualizar pip.
+    pause
+    exit /b 1
+)
 pip install -r "%BACKEND_DIR%\requirements.txt"
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+    echo ERROR: Fallo al instalar dependencias de backend.
+    pause
+    exit /b 1
+)
 
 echo [5/8] Generando migraciones, aplicandolas y recolectando estaticos...
 set "DJANGO_SETTINGS_MODULE=inventario.settings.prod_sqlite"
@@ -84,9 +101,8 @@ if /I "%LOAD_FIXTURE%"=="S" (
     )
     python manage.py loaddata "%FIXTURE_FILE%" --settings=inventario.settings.prod_sqlite
     if errorlevel 1 (
-        echo ERROR: Fallo al cargar el fixture.
-        pause
-        exit /b 1
+        echo ADVERTENCIA: El fixture opcional no se pudo cargar.
+        echo Se continuara con la base de datos vacia.
     )
 )
 python manage.py ensure_default_admin --username admin --password admin123 --settings=inventario.settings.prod_sqlite
@@ -107,6 +123,7 @@ echo [6/8] Instalando dependencias de frontend...
 where npm >nul 2>&1
 if errorlevel 1 (
     echo No se encontro npm. Instala Node.js antes de continuar.
+    pause
     exit /b 1
 )
 
@@ -122,22 +139,22 @@ if exist package-lock.json (
 )
 if errorlevel 1 (
     echo ERROR: No se pudieron instalar las dependencias del frontend.
+    pause
     exit /b 1
 )
 
 echo [7/8] Construyendo frontend...
 call npm run build
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+    echo ERROR: Fallo al construir el frontend.
+    pause
+    exit /b 1
+)
 popd
 
 echo [8/8] Iniciando servicios...
-if /I "%HIDE_TERMINALS%"=="S" (
-    start "Inventario Backend" powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%ROOT_DIR%\run_backend_prod_sqlite.ps1"
-    start "Inventario Frontend" powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%ROOT_DIR%\run_frontend_preview.ps1"
-) else (
-    start "Inventario Backend" "%ROOT_DIR%\run_backend_prod_sqlite.bat"
-    start "Inventario Frontend" "%ROOT_DIR%\run_frontend_preview.bat"
-)
+start "Inventario Backend" "%ROOT_DIR%\run_backend_prod_sqlite.bat"
+start "Inventario Frontend" "%ROOT_DIR%\run_frontend_preview.bat"
 start "Inventario Browser" powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Start-Sleep -Seconds 6; Start-Process 'http://127.0.0.1:4173'"
 
 echo.

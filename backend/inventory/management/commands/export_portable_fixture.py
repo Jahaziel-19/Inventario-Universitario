@@ -61,8 +61,7 @@ class Command(BaseCommand):
         for entry in payload:
             fields = entry.get("fields", {})
             for field_name in SCRUBBED_FIELDS:
-                if field_name in fields:
-                    fields[field_name] = None if fields[field_name] is not None else None
+                fields.pop(field_name, None)
 
         output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         self.stdout.write(self.style.SUCCESS(f"Fixture exportado en: {output_path}"))

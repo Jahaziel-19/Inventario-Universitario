@@ -10,5 +10,4 @@ python manage.py export_portable_fixture --settings=inventario.settings.prod_sql
 ```
 
 Notas:
-- El fixture local queda ignorado por Git.
 - Se excluyen rutas de archivos pesados como QR, barcode, imagen de producto, logo y documentos relacionados.
