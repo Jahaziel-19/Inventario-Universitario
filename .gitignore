@@ -41,10 +41,6 @@ backend/fixtures/*.json
 !backend/fixtures/README.md
 !backend/fixtures/local_optional_seed.json
 
-# Migraciones de Django (se regeneran con makemigrations)
-backend/*/migrations/*.py
-!backend/*/migrations/__init__.py
-
 # Tests
 backend/*/tests.py
 

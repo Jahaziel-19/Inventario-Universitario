@@ -13,10 +13,19 @@ if not exist ".venv\Scripts\python.exe" (
 
 call ".venv\Scripts\activate.bat"
 
+echo Generando migraciones si faltan...
+python manage.py makemigrations --settings=inventario.settings.prod_sqlite
+if errorlevel 1 (
+    echo ERROR: Fallo al generar migraciones.
+    pause
+    exit /b 1
+)
+
 echo Aplicando migraciones...
 python manage.py migrate --settings=inventario.settings.prod_sqlite
 if errorlevel 1 (
     echo ERROR: Fallo al aplicar migraciones.
+    echo Si la base de datos ya existia y hay conflicto de esquema, borra backend/db.prod.sqlite3 y vuelve a ejecutar.
     pause
     exit /b 1
 )

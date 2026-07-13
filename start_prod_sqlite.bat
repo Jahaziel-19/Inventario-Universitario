@@ -58,22 +58,49 @@ if errorlevel 1 exit /b 1
 pip install -r "%BACKEND_DIR%\requirements.txt"
 if errorlevel 1 exit /b 1
 
-echo [5/8] Aplicando migraciones y recolectando archivos estaticos...
+echo [5/8] Generando migraciones, aplicandolas y recolectando estaticos...
 set "DJANGO_SETTINGS_MODULE=inventario.settings.prod_sqlite"
 pushd "%BACKEND_DIR%"
+python manage.py makemigrations --settings=inventario.settings.prod_sqlite
+if errorlevel 1 (
+    echo ERROR: Fallo al generar migraciones.
+    pause
+    exit /b 1
+)
 python manage.py migrate --settings=inventario.settings.prod_sqlite
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+    echo ERROR: Fallo al aplicar migraciones.
+    echo Si la base de datos ya existia y hay conflicto de esquema, borra backend/db.prod.sqlite3 y vuelve a ejecutar.
+    pause
+    exit /b 1
+)
 if /I "%LOAD_FIXTURE%"=="S" (
     echo Restaurando base desde fixture opcional...
     python manage.py flush --noinput --settings=inventario.settings.prod_sqlite
-    if errorlevel 1 exit /b 1
+    if errorlevel 1 (
+        echo ERROR: Fallo al vaciar la base de datos.
+        pause
+        exit /b 1
+    )
     python manage.py loaddata "%FIXTURE_FILE%" --settings=inventario.settings.prod_sqlite
-    if errorlevel 1 exit /b 1
+    if errorlevel 1 (
+        echo ERROR: Fallo al cargar el fixture.
+        pause
+        exit /b 1
+    )
 )
 python manage.py ensure_default_admin --username admin --password admin123 --settings=inventario.settings.prod_sqlite
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+    echo ERROR: Fallo al crear el administrador por defecto.
+    pause
+    exit /b 1
+)
 python manage.py collectstatic --noinput --settings=inventario.settings.prod_sqlite
-if errorlevel 1 exit /b 1
+if errorlevel 1 (
+    echo ERROR: Fallo al recolectar archivos estaticos.
+    pause
+    exit /b 1
+)
 popd
 
 echo [6/8] Instalando dependencias de frontend...
