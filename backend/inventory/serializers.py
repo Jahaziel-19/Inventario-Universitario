@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
+from django.urls import reverse
 from .models import Category, Brand, Unit, MovementMotive, Location, Product, Movement, SystemConfig, AuditLog
 
 
@@ -48,6 +49,14 @@ class ProductSerializer(serializers.ModelSerializer):
     unit_name = serializers.CharField(source='unit.abbreviation', read_only=True)
     location_name = serializers.CharField(source='location.get_full_path', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    qr_code = serializers.SerializerMethodField()
+    barcode = serializers.SerializerMethodField()
+
+    def get_qr_code(self, obj):
+        return reverse('product-qr-code', kwargs={'pk': obj.pk})
+
+    def get_barcode(self, obj):
+        return reverse('product-barcode-image', kwargs={'pk': obj.pk})
 
     class Meta:
         model = Product

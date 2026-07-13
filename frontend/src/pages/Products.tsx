@@ -774,7 +774,7 @@ export default function Products({ token, preset, onPresetConsumed }: ProductsPr
                                     <div className="codes-card codes-card--detail">
                                         {selectedProduct.qr_code ? (
                                             <div style={{ textAlign: 'center' }}>
-                                                <img src={buildMediaUrl(selectedProduct.qr_code)} alt="QR" style={{ width: '132px', height: '132px', display: 'block', margin: '0 auto' }} />
+                                                <img src={buildApiUrl(selectedProduct.qr_code)} alt="QR" style={{ width: '132px', height: '132px', display: 'block', margin: '0 auto' }} />
                                                 <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 650 }}>CÓDIGO QR</span>
                                             </div>
                                         ) : (
@@ -784,7 +784,7 @@ export default function Products({ token, preset, onPresetConsumed }: ProductsPr
                                     <div className="codes-card codes-card--detail">
                                         {selectedProduct.barcode ? (
                                             <div style={{ textAlign: 'center' }}>
-                                                <img src={buildMediaUrl(selectedProduct.barcode)} alt="Barcode" style={{ width: '220px', height: '84px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
+                                                <img src={buildApiUrl(selectedProduct.barcode)} alt="Barcode" style={{ width: '220px', height: '84px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />
                                                 <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 650 }}>BARCODE</span>
                                             </div>
                                         ) : (

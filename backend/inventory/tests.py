@@ -34,11 +34,11 @@ class InventoryTests(TestCase):
         self.client.force_authenticate(user=self.user)
 
     def test_product_creation_and_label_generation(self):
-        """Verifica que el producto se crea y genera automáticamente sus imágenes QR y Barcode."""
-        self.assertIsNotNone(self.product.qr_code)
-        self.assertIsNotNone(self.product.barcode)
-        self.assertTrue(self.product.qr_code.name.startswith('product_qrs/qr_DELL-LAT-5420'))
-        self.assertTrue(self.product.barcode.name.startswith('product_barcodes/barcode_DELL-LAT-5420'))
+        """Verifica que el producto expone endpoints dinámicos para QR y barcode."""
+        response = self.client.get(reverse("product-detail", args=[self.product.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["qr_code"], f"/api/products/{self.product.id}/qr-code/")
+        self.assertEqual(response.data["barcode"], f"/api/products/{self.product.id}/barcode-image/")
         self.assertEqual(self.product.stock, 0)
 
     def test_product_with_enye_generates_barcode_without_error(self):
@@ -52,8 +52,9 @@ class InventoryTests(TestCase):
             min_stock=1
         )
 
-        self.assertIsNotNone(product.barcode)
-        self.assertIn('product_barcodes/barcode_', product.barcode.name)
+        response = self.client.get(reverse("product-barcode-image", args=[product.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "image/png")
 
     def test_positive_movement_updates_stock(self):
         """Verifica que un movimiento de Entrada incremente el stock del producto."""
@@ -168,7 +169,18 @@ class InventoryTests(TestCase):
 
         self.assertEqual(response.status_code, 201)
         imported_product = Product.objects.get(code="CAÑ-002")
-        self.assertIsNotNone(imported_product.barcode)
+        barcode_response = self.client.get(reverse("product-barcode-image", args=[imported_product.id]))
+        self.assertEqual(barcode_response.status_code, 200)
+        self.assertEqual(barcode_response["Content-Type"], "image/png")
+
+    def test_product_qr_and_barcode_endpoints_return_png(self):
+        qr_response = self.client.get(reverse("product-qr-code", args=[self.product.id]))
+        barcode_response = self.client.get(reverse("product-barcode-image", args=[self.product.id]))
+
+        self.assertEqual(qr_response.status_code, 200)
+        self.assertEqual(qr_response["Content-Type"], "image/png")
+        self.assertEqual(barcode_response.status_code, 200)
+        self.assertEqual(barcode_response["Content-Type"], "image/png")
 
     def test_import_preview_detects_mapping_and_optional_stock(self):
         csv_content = (

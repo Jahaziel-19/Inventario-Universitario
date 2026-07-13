@@ -9,7 +9,6 @@ from barcode.errors import IllegalCharacterError
 from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
-from django.core.files import File
 
 
 class Category(models.Model):
@@ -120,49 +119,24 @@ class Product(models.Model):
             raise ValidationError({"min_stock": "El stock mínimo no puede ser negativo."})
 
     def save(self, *args, **kwargs):
-        # We need to save the model first if code has changed to generate labels
-        # Or check if code is set.
         self.clean()
-        
-        # QR generation if not set
-        if not self.qr_code or self.tracker_has_changed('code'):
-            self.generate_qr()
-        
-        # Barcode generation if not set
-        if not self.barcode or self.tracker_has_changed('code'):
-            self.generate_barcode()
-
         super(Product, self).save(*args, **kwargs)
 
-    def tracker_has_changed(self, field):
-        if not self.pk:
-            return True
-        try:
-            orig = Product.objects.get(pk=self.pk)
-            return getattr(orig, field) != getattr(self, field)
-        except Product.DoesNotExist:
-            return True
-
-    def generate_qr(self):
+    def generate_qr_image(self):
         qr = qrcode.QRCode(version=1, box_size=10, border=3)
         qr.add_data(self.code)
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white")
         buffer = BytesIO()
         img.save(buffer, format="PNG")
-        filename = f"qr_{self.code}.png"
-        self.qr_code.save(filename, File(buffer), save=False)
+        return buffer.getvalue()
 
     def get_barcode_payload(self):
         normalized = unicodedata.normalize("NFKD", self.code).encode("ascii", "ignore").decode("ascii")
         sanitized = ''.join(char for char in normalized if 32 <= ord(char) <= 126).strip()
         return sanitized or "PRODUCT-CODE"
 
-    def get_safe_media_name(self, prefix):
-        safe_code = re.sub(r'[^A-Za-z0-9._-]+', '_', self.code).strip('._-')
-        return f"{prefix}_{safe_code or 'product'}.png"
-
-    def generate_barcode(self):
+    def generate_barcode_image(self):
         cod128 = barcode.get_barcode_class('code128')
         writer = ImageWriter()
         rv = BytesIO()
@@ -172,8 +146,7 @@ class Product(models.Model):
         except IllegalCharacterError:
             fallback_payload = re.sub(r'[^A-Za-z0-9._-]+', '', barcode_payload) or "PRODUCTCODE"
             cod128(fallback_payload, writer=writer).write(rv)
-        filename = self.get_safe_media_name("barcode")
-        self.barcode.save(filename, File(rv), save=False)
+        return rv.getvalue()
 
     def __str__(self):
         return f"[{self.code}] {self.description}"
