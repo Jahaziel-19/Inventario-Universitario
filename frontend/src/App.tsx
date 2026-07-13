@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Package, Layers, ClipboardList, FileSpreadsheet, LogOut, Shield, Menu } from 'lucide-react';
+import { LayoutDashboard, Package, Layers, ClipboardList, FileSpreadsheet, LogOut, Shield, Menu, KeyRound, X, Check } from 'lucide-react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Products from './pages/Products';
 import Catalogs from './pages/Catalogs';
 import Movements from './pages/Movements';
 import ImportExport from './pages/ImportExport';
+import Modal from './components/Modal';
+import { buildApiUrl, getAuthHeaders } from './lib/api';
 import './App.css';
 
 function App() {
@@ -15,6 +17,13 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [productPreset, setProductPreset] = useState<string>('');
   const [movementPreset, setMovementPreset] = useState<string>('');
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordChangeError, setPasswordChangeError] = useState('');
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState('');
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
 
   const handleLoginSuccess = (userToken: string, userVal: string) => {
     localStorage.setItem('jwt_token', userToken);
@@ -30,6 +39,20 @@ function App() {
     setToken(null);
     setUsername('');
     setSidebarOpen(false);
+  };
+
+  const resetPasswordModal = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordChangeError('');
+    setPasswordChangeSuccess('');
+    setPasswordChangeLoading(false);
+  };
+
+  const closePasswordModal = () => {
+    setIsPasswordModalOpen(false);
+    resetPasswordModal();
   };
 
   // Automatically check token expiry or basic session checks
@@ -65,6 +88,51 @@ function App() {
       setMovementPreset(preset);
     }
     handleTabChange(tab);
+  };
+
+  const handleChangePassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!token) {
+      return;
+    }
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordChangeError('Completa todos los campos.');
+      return;
+    }
+
+    setPasswordChangeError('');
+    setPasswordChangeSuccess('');
+    setPasswordChangeLoading(true);
+
+    try {
+      const response = await fetch(buildApiUrl('/api/users/change_password/'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(token),
+        },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+          confirm_password: confirmPassword,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudo actualizar la contraseña.');
+      }
+
+      setPasswordChangeSuccess(data.message || 'Contraseña actualizada correctamente.');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      setPasswordChangeError(error.message || 'No se pudo actualizar la contraseña.');
+    } finally {
+      setPasswordChangeLoading(false);
+    }
   };
 
   const renderContent = () => {
@@ -143,6 +211,17 @@ function App() {
               <span className="user-role">Administrador</span>
             </div>
           </div>
+          <button
+            onClick={() => {
+              resetPasswordModal();
+              setIsPasswordModalOpen(true);
+            }}
+            className="btn btn-secondary"
+            style={{ width: '100%', padding: '0.5rem', display: 'flex', gap: '0.5rem', justifyContent: 'center', marginBottom: '0.5rem' }}
+          >
+            <KeyRound size={16} />
+            Cambiar contraseña
+          </button>
           <button onClick={handleLogout} className="btn btn-secondary" style={{ width: '100%', padding: '0.5rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
             <LogOut size={16} />
             Cerrar sesión
@@ -161,6 +240,73 @@ function App() {
         </div>
         {renderContent()}
       </main>
+
+      <Modal isOpen={isPasswordModalOpen} onClose={closePasswordModal}>
+        <form onSubmit={handleChangePassword} className="modal-content fade-in">
+          <div className="modal-header">
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Cambiar contraseña</h2>
+            <button type="button" onClick={closePasswordModal} className="btn btn-secondary" style={{ padding: '0.35rem' }}>
+              <X size={16} />
+            </button>
+          </div>
+
+          <div className="modal-body" style={{ display: 'grid', gap: '1rem' }}>
+            {passwordChangeError ? (
+              <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                {passwordChangeError}
+              </div>
+            ) : null}
+            {passwordChangeSuccess ? (
+              <div style={{ background: 'rgba(16, 185, 129, 0.12)', color: 'var(--success)', padding: '0.85rem 1rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                {passwordChangeSuccess}
+              </div>
+            ) : null}
+
+            <div className="form-group">
+              <label className="form-label">Contraseña actual</label>
+              <input
+                type="password"
+                className="form-input"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Ingresa tu contraseña actual"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Nueva contraseña</label>
+              <input
+                type="password"
+                className="form-input"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Nueva contraseña"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Confirmar nueva contraseña</label>
+              <input
+                type="password"
+                className="form-input"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repite la nueva contraseña"
+              />
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" onClick={closePasswordModal} className="btn btn-secondary">
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={passwordChangeLoading}>
+              <Check size={16} />
+              {passwordChangeLoading ? 'Guardando...' : 'Actualizar contraseña'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

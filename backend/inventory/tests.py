@@ -376,3 +376,18 @@ class InventoryTests(TestCase):
         self.assertTrue(
             Movement.objects.filter(motive__name="Donación extraordinaria").exists()
         )
+
+    def test_authenticated_user_can_change_password(self):
+        response = self.client.post(
+            reverse("user-change-password"),
+            {
+                "current_password": "password123",
+                "new_password": "NuevaClaveSegura123!",
+                "confirm_password": "NuevaClaveSegura123!",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("NuevaClaveSegura123!"))

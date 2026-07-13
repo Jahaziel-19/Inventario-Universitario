@@ -37,6 +37,8 @@ backend/media/
 backend/staticfiles/
 backend/db.sqlite3
 backend/db.prod.sqlite3
+backend/fixtures/*.json
+!backend/fixtures/README.md
 
 # Logs y temporales
 *.log

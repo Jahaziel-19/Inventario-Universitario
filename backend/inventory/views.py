@@ -12,6 +12,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from django.db.models import Q, F, Sum
 from django.http import HttpResponse
@@ -481,6 +482,48 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def change_password(self, request):
+        user = request.user
+        current_password = request.data.get('current_password', '')
+        new_password = request.data.get('new_password', '')
+        confirm_password = request.data.get('confirm_password', '')
+
+        if not current_password or not new_password or not confirm_password:
+            return Response(
+                {"error": "Debe completar todos los campos de contraseña."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user.check_password(current_password):
+            return Response(
+                {"error": "La contraseña actual es incorrecta."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if new_password != confirm_password:
+            return Response(
+                {"error": "La nueva contraseña y la confirmación no coinciden."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            validate_password(new_password, user=user)
+        except Exception as exc:
+            messages = getattr(exc, "messages", None) or [str(exc)]
+            return Response({"error": " ".join(messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save(update_fields=['password'])
+
+        AuditLog.objects.create(
+            user=user,
+            action="CHANGE_PASSWORD",
+            details="El usuario actualizó su contraseña desde la interfaz.",
+        )
+
+        return Response({"message": "Contraseña actualizada correctamente."})
 
     def create(self, request, *args, **kwargs):
         # Action for registering users (signup)

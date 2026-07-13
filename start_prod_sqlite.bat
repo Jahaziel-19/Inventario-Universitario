@@ -10,6 +10,9 @@ set "VENV_DIR=%BACKEND_DIR%\.venv"
 set "BACKEND_ENV=%BACKEND_DIR%\.env"
 set "BACKEND_ENV_EXAMPLE=%BACKEND_DIR%\.env.prod_sqlite.example"
 set "FRONTEND_ENV=%FRONTEND_DIR%\.env.production.local"
+set "FIXTURE_FILE=%BACKEND_DIR%\fixtures\local_optional_seed.json"
+set "LOAD_FIXTURE=N"
+set "HIDE_TERMINALS=N"
 
 echo [1/8] Preparando archivos de entorno...
 if not exist "%BACKEND_ENV%" (
@@ -44,6 +47,11 @@ if not exist "%VENV_DIR%\Scripts\python.exe" (
 call "%VENV_DIR%\Scripts\activate.bat"
 if errorlevel 1 exit /b 1
 
+if exist "%FIXTURE_FILE%" (
+    set /p LOAD_FIXTURE=Deseas cargar el fixture opcional local_optional_seed.json^? [s/N]: 
+)
+::set /p HIDE_TERMINALS=Deseas ocultar las terminales de backend y frontend^? [s/N]: 
+
 echo [4/8] Instalando dependencias de backend...
 python -m pip install --upgrade pip
 if errorlevel 1 exit /b 1
@@ -54,6 +62,15 @@ echo [5/8] Aplicando migraciones y recolectando archivos estaticos...
 set "DJANGO_SETTINGS_MODULE=inventario.settings.prod_sqlite"
 pushd "%BACKEND_DIR%"
 python manage.py migrate --settings=inventario.settings.prod_sqlite
+if errorlevel 1 exit /b 1
+if /I "%LOAD_FIXTURE%"=="S" (
+    echo Restaurando base desde fixture opcional...
+    python manage.py flush --noinput --settings=inventario.settings.prod_sqlite
+    if errorlevel 1 exit /b 1
+    python manage.py loaddata "%FIXTURE_FILE%" --settings=inventario.settings.prod_sqlite
+    if errorlevel 1 exit /b 1
+)
+python manage.py ensure_default_admin --username admin --password admin123 --settings=inventario.settings.prod_sqlite
 if errorlevel 1 exit /b 1
 python manage.py collectstatic --noinput --settings=inventario.settings.prod_sqlite
 if errorlevel 1 exit /b 1
@@ -80,8 +97,14 @@ if errorlevel 1 exit /b 1
 popd
 
 echo [8/8] Iniciando servicios...
-start "Inventario Backend" "%ROOT_DIR%\run_backend_prod_sqlite.bat"
-start "Inventario Frontend" "%ROOT_DIR%\run_frontend_preview.bat"
+if /I "%HIDE_TERMINALS%"=="S" (
+    start "Inventario Backend" powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%ROOT_DIR%\run_backend_prod_sqlite.ps1"
+    start "Inventario Frontend" powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%ROOT_DIR%\run_frontend_preview.ps1"
+) else (
+    start "Inventario Backend" "%ROOT_DIR%\run_backend_prod_sqlite.bat"
+    start "Inventario Frontend" "%ROOT_DIR%\run_frontend_preview.bat"
+)
+start "Inventario Browser" powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Start-Sleep -Seconds 6; Start-Process 'http://127.0.0.1:4173'"
 
 echo.
 echo Proyecto iniciado.
