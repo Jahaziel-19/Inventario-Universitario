@@ -458,12 +458,12 @@ Entre ellas:
 
 ---
 
-# Arquitectura tecnológica propuesta
+# Arquitectura tecnológica 
 
 | Componente | Tecnología |
 |------------|------------|
 | Backend | Django + Django REST Framework |
-| Frontend | React o Next.js |
+| Frontend | React |
 | Base de datos | PostgreSQL |
 | Autenticación | Sistema de usuarios y permisos de Django |
 | Importación y exportación | OpenPyXL + Pandas |
